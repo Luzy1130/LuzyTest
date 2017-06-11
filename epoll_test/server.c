@@ -32,13 +32,21 @@ s32 handleClient(s32 connfd)
     if(nread < 0) {
         perror("read error");
         close(connfd);
-        return -1
+        return -1;
     }
 
     write(connfd, buf, nread);
     return 0;
 }
 
+s32 setnonblocking(int sockfd)
+{
+    if (fcntl(sockfd, F_SETFL, fcntl(sockfd, F_GETFD, 0) | O_NONBLOCK) == -1) {
+        return -1;
+    }
+    
+    return 0;
+}
 
 int main(int argc, char** argv)
 {
@@ -104,7 +112,7 @@ int main(int argc, char** argv)
     ev.events = EPOLLIN | EPOLLET;
     ev.data.fd = listenfd;
     if (epoll_ctl(kdpfd, EPOLL_CTL_ADD, listenfd, &ev) < 0) {
-        fprintf(strerr, "epoll set insertion error: fd=%d\n", listenfd);
+        fprintf(stderr, "epoll set insertion error: fd=%d\n", listenfd);
         close(kdpfd);
         return -1;
     }    
@@ -151,13 +159,13 @@ int main(int argc, char** argv)
                     continue;
                 }
                 curfds++;
-                continus;
+                continue;
             }
     
             /* Handle the data sended fron client */
             if(handleClient(events[i].data.fd < 0)) {
                 epoll_ctl(kdpfd, EPOLL_CTL_DEL, events[i].data.fd, &ev);
-                curfd--;
+                curfds--;
             }
         }
     }
